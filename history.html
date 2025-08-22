@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login History</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-history"></i> Login History</h1>
+            <p>Recent login activity</p>
+        </header>
+        <main class="main-content">
+            <div class="welcome-content">
+                <div class="welcome-card" style="max-width:800px;">
+                    <div id="login-history-list">Loading...</div>
+                    <div class="welcome-buttons" style="margin-top:1rem; display:flex; gap:0.5rem;">
+                        <button class="btn btn-outline" id="clear-btn"><i class="fas fa-trash"></i> Clear History</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+    (function(){
+        const ADMIN_PIN = '1234';
+        const pin = (prompt('Enter admin PIN:') || '').trim();
+        if (pin !== ADMIN_PIN) {
+            alert('Incorrect PIN');
+            window.location.href = 'index.html';
+            return;
+        }
+        const listEl = document.getElementById('login-history-list');
+        function getHistory(){
+            try { return JSON.parse(localStorage.getItem('fc_login_history')||'[]'); } catch { return []; }
+        }
+        function render(){
+            const rows = getHistory();
+            if (!rows.length){ listEl.innerHTML = '<p>No login entries yet.</p>'; return; }
+            const html = rows.map(e => {
+                const ts = new Date(e.ts).toLocaleString();
+                const who = e.name || 'User';
+                return `<div class=\"deck-item\"><div class=\"deck-info\"><h4>${who}</h4><p>${ts}</p></div><div class=\"deck-actions\"><button class=\"btn btn-danger\" data-del=\"${who}\"><i class=\"fas fa-user-slash\"></i> Remove User</button></div></div>`;
+            }).join('');
+            listEl.innerHTML = html;
+        }
+        listEl.addEventListener('click', function(e){
+            const del = e.target.closest('[data-del]')?.getAttribute('data-del');
+            if (!del) return;
+            if (!confirm(`Remove user \"${del}\" from system?`)) return;
+            try {
+                const USERS_KEY = 'fc_users_map';
+                const users = JSON.parse(localStorage.getItem(USERS_KEY)||'{}');
+                delete users[del];
+                localStorage.setItem(USERS_KEY, JSON.stringify(users));
+                const ACTIVE_KEY = 'fc_active_users';
+                const act = JSON.parse(localStorage.getItem(ACTIVE_KEY)||'{}');
+                delete act[del];
+                localStorage.setItem(ACTIVE_KEY, JSON.stringify(act));
+                alert('User removed.');
+            } catch {}
+        });
+        document.getElementById('clear-btn').onclick = function(){
+            if (confirm('Clear all login history?')){
+                localStorage.removeItem('fc_login_history');
+                render();
+            }
+        };
+        render();
+    })();
+    </script>
+</body>
+<script></script>
+</html>
+
+
+
+

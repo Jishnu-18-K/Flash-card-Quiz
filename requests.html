@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Requests</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-user-check"></i> Registration Requests</h1>
+            <p>Approve or reject new user registrations</p>
+        </header>
+        <main class="main-content">
+            <div class="welcome-content">
+                <div class="welcome-card" style="max-width:800px;">
+                    <div id="requests-list">Loading...</div>
+                    <div class="welcome-buttons" style="margin-top:1rem; display:flex; gap:0.5rem;">
+                        <button class="btn btn-outline" id="clear-btn"><i class="fas fa-trash"></i> Clear All Requests</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+    (function(){
+        const ADMIN_PIN = '1234';
+        const pin = (prompt('Enter admin PIN:') || '').trim();
+        if (pin !== ADMIN_PIN) {
+            alert('Incorrect PIN');
+            window.location.href = 'index.html';
+            return;
+        }
+        const REQ_KEY = 'fc_reg_requests';
+        const USERS_KEY = 'fc_users_map';
+        const listEl = document.getElementById('requests-list');
+        function getRequests(){ try { return JSON.parse(localStorage.getItem(REQ_KEY)||'[]'); } catch { return []; } }
+        function setRequests(v){ localStorage.setItem(REQ_KEY, JSON.stringify(v)); }
+        function getUsers(){ try { return JSON.parse(localStorage.getItem(USERS_KEY)||'{}'); } catch { return {}; } }
+        function setUsers(v){ localStorage.setItem(USERS_KEY, JSON.stringify(v)); }
+        function render(){
+            const rows = getRequests();
+            if (!rows.length){ listEl.innerHTML = '<p>No pending requests.</p>'; return; }
+            listEl.innerHTML = rows.map((r, idx) => {
+                const ts = new Date(r.ts).toLocaleString();
+                const kind = r.type === 'reset' ? 'Reset' : 'Register';
+                return `<div class=\"deck-item\"><div class=\"deck-info\"><h4>${r.name}</h4><p>${ts} • ${kind}</p></div><div class=\"deck-actions\"><button class=\"btn btn-primary\" data-approve=${idx}><i class=\"fas fa-check\"></i> Approve</button><button class=\"btn btn-danger\" data-reject=${idx}><i class=\"fas fa-times\"></i> Reject</button></div></div>`;
+            }).join('');
+        }
+        listEl.addEventListener('click', function(e){
+            const approveIdx = e.target.closest('[data-approve]')?.getAttribute('data-approve');
+            const rejectIdx = e.target.closest('[data-reject]')?.getAttribute('data-reject');
+            if (approveIdx !== null && approveIdx !== undefined){
+                const reqs = getRequests();
+                const r = reqs[approveIdx];
+                if (!r) return;
+                const users = getUsers();
+                if (r.type === 'reset') {
+                    if (users[r.name]) { users[r.name].password = r.password; }
+                } else {
+                    if (!users[r.name]) users[r.name] = { password: r.password };
+                }
+                setUsers(users);
+                reqs.splice(approveIdx,1);
+                setRequests(reqs);
+                render();
+                alert(r.type === 'reset' ? 'Password reset approved.' : 'User registration approved.');
+            }
+            if (rejectIdx !== null && rejectIdx !== undefined){
+                const reqs = getRequests();
+                reqs.splice(rejectIdx,1);
+                setRequests(reqs);
+                render();
+            }
+        });
+        document.getElementById('clear-btn').onclick = function(){
+            if (confirm('Clear all requests?')){ localStorage.removeItem(REQ_KEY); render(); }
+        };
+        render();
+    })();
+    </script>
+</body>
+</html>
+
+
+
+
